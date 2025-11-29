@@ -17,6 +17,8 @@ class User(db.Model):
 
     #relationship (User-Doctor 1:1)
     doctor=db.relationship("Doctor",backref="user",uselist=False,cascade="all, delete-orphan")
+    patient = db.relationship("Patient", backref="user", uselist=False, cascade="all, delete-orphan")
+
     
     def __repr__(self):
         return f"<User {self.username} ({self.role})>"

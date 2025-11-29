@@ -3,4 +3,6 @@ from .models import (
     User,
     Doctor, 
     Patient,
+    Department,
+    Appointment,
 )
