@@ -322,6 +322,50 @@ def admin_toggle_doctor(doctor_id):
         "status": doc.status
     })
 
+@admin_blueprint.route("/patients/<int:patient_id>/history", methods=["GET"])
+@jwt_required()
+def admin_patient_history(patient_id):
+    identity = require_admin()
+    if not identity:
+        return jsonify({"msg": "Admin access required"}), 403
+
+    patient = Patient.query.get_or_404(patient_id)
+
+    appts = (
+        Appointment.query
+        .filter_by(patient_id=patient.id)
+        .order_by(Appointment.date.desc(), Appointment.start_time.desc())
+        .all()
+    )
+
+    history = []
+    for a in appts:
+        t = a.treatment
+        history.append({
+            "id": a.id,
+            "date": a.date.isoformat(),
+            "start_time": a.start_time.strftime("%H:%M"),
+            "end_time": a.end_time.strftime("%H:%M"),
+            "status": a.status_appointment,
+            "doctor_id": a.doctor_id,
+            "doctor_name": a.doctor.name if a.doctor else None,
+            "diagnosis": t.diagnosis if t else None,
+            "prescription": t.prescription if t else None,
+            "notes": t.notes if t else None,
+        })
+
+    return jsonify({
+        "patient": {
+            "id": patient.id,
+            "name": patient.name,
+            "contact": patient.contact,
+            "address": patient.address,
+            "status": patient.status,
+        },
+        "appointments": history
+    })
+
+
 @admin_blueprint.route("/patients/<int:patient_id>/toggle", methods=["PATCH"])
 @jwt_required()
 def admin_toggle_patient(patient_id):

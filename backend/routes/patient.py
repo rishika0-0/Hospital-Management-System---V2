@@ -337,6 +337,7 @@ def patient_reschedule_appointment(appt_id):
 
     selected = DoctorAvailability.query.get_or_404(slot_id)
 
+    #handling conflict for doctor
     other_appt = Appointment.query.filter(
         Appointment.doctor_id == doctor.id,
         Appointment.date == selected.date,
@@ -347,6 +348,17 @@ def patient_reschedule_appointment(appt_id):
 
     if other_appt:
         return jsonify({"msg": "Slot already booked"}), 400
+    
+    #handling conflict for patient
+    other_for_patient = Appointment.query.filter(
+        Appointment.patient_id == patient.id,
+        Appointment.date == selected.date,
+        Appointment.start_time == selected.start_time,
+        Appointment.id != appt.id,
+        Appointment.status_appointment != "Cancelled"
+    ).first()
+    if other_for_patient:
+        return jsonify({"msg": "You already have an appointment at this time"}), 400
 
     appt.date = selected.date
     appt.start_time = selected.start_time
