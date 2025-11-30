@@ -5,4 +5,6 @@ from .models import (
     Patient,
     Department,
     Appointment,
+    Treatment,
+    DoctorAvailability,
 )

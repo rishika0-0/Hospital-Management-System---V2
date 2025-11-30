@@ -22,14 +22,14 @@ def role_required(*allowed_roles):
     return decorator
 
 def get_doctor():
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     user = User.query.get(user_id)
     if not user or user.role != "DOCTOR":
         return None
     return Doctor.query.filter_by(user_id=user.id).first()
 
 def get_patient():
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     user = User.query.get(user_id)
     if not user or user.role != "PATIENT":
         return None
