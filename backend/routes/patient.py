@@ -1,7 +1,8 @@
-# routes/patient.py
 from flask import Blueprint, request, jsonify
 from werkzeug.security import generate_password_hash
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from app import redis_cache,CACHE_TTL
+import json
 from datetime import date, timedelta
 
 from models import db, User, Doctor, Patient, Department, Appointment, Treatment, DoctorAvailability
@@ -25,6 +26,14 @@ def patient_dashboard():
     patient = get_patient()
     if not patient:
         return jsonify({"msg": "Patient not found"}), 404
+    
+    cache = f"patient:dashboard:{patient.id}"
+    cached = redis_cache.get(cache)
+
+    if cached:
+        data = json.loads(cached)
+        data["cached"] = True
+        return jsonify(data)
 
     today = date.today()
 
@@ -64,7 +73,8 @@ def patient_dashboard():
             "prescription": t.prescription if t else None,
         }
 
-    return jsonify({
+    result = {
+        "cached": False,
         "patient": {
             "id": patient.id,
             "name": patient.name,
@@ -78,8 +88,11 @@ def patient_dashboard():
             {"id": d.id, "name": d.name, "description": d.description}
             for d in departments
         ]
-    })
+    }
 
+    redis_cache.setex(cache, CACHE_TTL, json.dumps(result))
+
+    return jsonify(result)
 
 @patient_blueprint.route("/profile", methods=["GET", "PUT"])
 @jwt_required()
@@ -128,6 +141,14 @@ def patient_search_doctors():
     q = request.args.get("q", "").strip()
     dept_id = request.args.get("department_id")
 
+    cache = f"patient_doctors:{q}:{dept_id}"
+
+    cached = redis_cache.get(cache)
+    if cached:
+        data = json.loads(cached)
+        data["cached"] = True   
+        return jsonify(data)
+
     query = Doctor.query.join(Department).filter(Doctor.status == True)
 
     if q:
@@ -156,13 +177,28 @@ def patient_search_doctors():
             "status": d.status,
         })
 
-    return jsonify({"doctors": result})
+    result = {
+        "cached": False,
+        "doctors": result
+    }
+
+    redis_cache.setex(cache, CACHE_TTL, json.dumps(result))
+
+    return jsonify(result)
 
 
 @patient_blueprint.route("/doctors/<int:doctor_id>/slots", methods=["GET"])
 @jwt_required()
 @role_required("PATIENT")
 def patient_doctor_slots(doctor_id):
+
+    cache = f"slots:{doctor_id}"
+    cached = redis_cache.get(cache)
+    if cached:
+        data = json.loads(cached)
+        data["cached"] = True   
+        return jsonify(data)
+
     doctor = Doctor.query.get_or_404(doctor_id)
     today = date.today()
     week_later = today + timedelta(days=7)
@@ -204,11 +240,16 @@ def patient_doctor_slots(doctor_id):
             "is_booked": is_booked,
         })
 
-    return jsonify({
+    result = {
+        "cached": False,
         "doctor_id": doctor.id,
         "doctor_name": doctor.name,
         "slots": slots
-    })
+    }
+
+    redis_cache.setex(cache, CACHE_TTL, json.dumps(result))
+
+    return jsonify(result)
 
 
 @patient_blueprint.route("/doctors/<int:doctor_id>/book", methods=["POST"])

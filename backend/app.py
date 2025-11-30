@@ -6,6 +6,11 @@ from config import Config
 from models import db, DoctorAvailability
 import re
 from datetime import date, timedelta, datetime, time as dt_time
+import redis
+import json
+
+redis_cache = redis.Redis(host='localhost', port=6379, db=0)
+CACHE_TTL = 300 
 
 WEEKDAY_MAP = {
     "Mon": 0,

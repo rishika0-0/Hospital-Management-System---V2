@@ -126,7 +126,9 @@ class Appointment(db.Model):
     
     # Prevent multiple appointments at same date & time for the same doctor
     __table_args__ = (db.UniqueConstraint("doctor_id","date","start_time",name="uix_doctor_timeslot",),
-    )
+                      
+                      db.UniqueConstraint("patient_id", "date", "start_time", name="uix_patient_timeslot"),
+)
 
     def __repr__(self):
         return f"<Appointment Dr:{self.doctor_id} Pt:{self.patient_id} {self.date} {self.start_time}>"
